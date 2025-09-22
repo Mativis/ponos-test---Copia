@@ -83,6 +83,10 @@ class Desconto(db.Model):
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
+def is_admin():
+    """Verifica se o usuário logado é o administrador."""
+    return current_user.is_authenticated and current_user.username == 'admin'
+
 # Funções auxiliares
 def verificar_ponto_motorista(motorista_id, data):
     """Verifica se o motorista tem ponto registrado na data"""
@@ -555,6 +559,102 @@ def cancelar_desconto(id):
     
     return redirect(url_for('descontos'))
 
+# Rotas de Gerenciamento de Usuários (Apenas para Admin)
+@app.route('/usuarios')
+@login_required
+def usuarios():
+    if not is_admin():
+        flash('Acesso negado. Apenas administradores podem gerenciar usuários.', 'error')
+        return redirect(url_for('index'))
+    usuarios = Usuario.query.all()
+    return render_template('usuarios.html', usuarios=usuarios)
+
+@app.route('/usuario/novo', methods=['GET', 'POST'])
+@login_required
+def novo_usuario():
+    if not is_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        try:
+            username = request.form['username']
+            password = request.form['password']
+            nome = request.form['nome']
+            email = request.form['email']
+            ativo = 'ativo' in request.form
+            
+            password_hash = generate_password_hash(password)
+            
+            novo_usuario = Usuario(
+                username=username,
+                password_hash=password_hash,
+                nome=nome,
+                email=email,
+                ativo=ativo
+            )
+            db.session.add(novo_usuario)
+            db.session.commit()
+            flash('Usuário criado com sucesso!', 'success')
+            return redirect(url_for('usuarios'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar usuário: {str(e)}', 'error')
+            
+    return render_template('usuario_form.html', usuario=None)
+
+@app.route('/usuario/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_usuario(id):
+    if not is_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+
+    usuario = Usuario.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            usuario.username = request.form['username']
+            usuario.nome = request.form['nome']
+            usuario.email = request.form['email']
+            usuario.ativo = 'ativo' in request.form
+            
+            nova_senha = request.form.get('password')
+            if nova_senha:
+                usuario.password_hash = generate_password_hash(nova_senha)
+            
+            db.session.commit()
+            flash('Usuário atualizado com sucesso!', 'success')
+            return redirect(url_for('usuarios'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar usuário: {str(e)}', 'error')
+
+    return render_template('usuario_form.html', usuario=usuario)
+
+@app.route('/usuario/excluir/<int:id>')
+@login_required
+def excluir_usuario(id):
+    if not is_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+
+    usuario = Usuario.query.get_or_404(id)
+    
+    if usuario.username == 'admin':
+        flash('Não é possível excluir o usuário administrador principal.', 'error')
+        return redirect(url_for('usuarios'))
+    
+    try:
+        db.session.delete(usuario)
+        db.session.commit()
+        flash('Usuário excluído com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir usuário: {str(e)}', 'error')
+    
+    return redirect(url_for('usuarios'))
+
 # Exportar dados
 @app.route('/exportar/<tipo>')
 @login_required
@@ -671,4 +771,4 @@ if __name__ == '__main__':
             db.session.commit()
             print("Usuário admin criado: username='admin', senha='admin123'")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5007)

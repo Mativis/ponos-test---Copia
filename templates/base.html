@@ -146,6 +146,9 @@
                 <a href="{{ url_for('pontos') }}" class="list-group-item"><i class="fas fa-clock me-2"></i>Controle de Ponto</a>
                 <a href="{{ url_for('frota') }}" class="list-group-item"><i class="fas fa-car me-2"></i>Controle de Frota</a>
                 <a href="{{ url_for('descontos') }}" class="list-group-item"><i class="fas fa-file-invoice-dollar me-2"></i>Descontos</a>
+                {% if current_user.username == 'admin' %}
+                <a href="{{ url_for('usuarios') }}" class="list-group-item"><i class="fas fa-user-shield me-2"></i>Gerenciar Usuários</a>
+                {% endif %}
             </div>
         </div>
         <div id="page-content-wrapper">
