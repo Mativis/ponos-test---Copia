@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Colaboradores{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Colaboradores</h1>
+    <div>
+        <a href="{{ url_for('exportar', tipo='colaboradores') }}" class="btn btn-success"><i class="fas fa-file-excel"></i> Exportar</a>
+        <a href="{{ url_for('novo_colaborador') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Colaborador</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Matrícula</th>
+                    <th>Telefone</th>
+                    <th>Email</th>
+                    <th>Veículo Vinculado</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for colaborador in colaboradores %}
+                <tr>
+                    <td>{{ colaborador.nome }}</td>
+                    <td>{{ colaborador.matricula }}</td>
+                    <td>{{ colaborador.telefone }}</td>
+                    <td>{{ colaborador.email }}</td>
+                    <td>{{ colaborador.veiculo_vinculado or 'N/A' }}</td>
+                    <td>
+                        {% if colaborador.ativo %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('editar_colaborador', id=colaborador.id) }}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                        <a href="{{ url_for('excluir_colaborador', id=colaborador.id) }}" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este colaborador?')"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">Nenhum colaborador cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

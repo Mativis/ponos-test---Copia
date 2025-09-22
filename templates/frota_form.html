@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{% if registro %}Editar Registro de Frota{% else %}Novo Registro de Frota{% endif %}{% endblock %}
+
+{% block content %}
+<h1>{% if registro %}Editar Registro de Frota{% else %}Novo Registro de Frota{% endif %}</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="data" class="form-label">Data *</label>
+                    <input type="date" class="form-control" id="data" name="data" value="{{ registro.data.strftime('%Y-%m-%d') if registro else '' }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="veiculo" class="form-label">Veículo *</label>
+                    <input type="text" class="form-control" id="veiculo" name="veiculo" value="{{ registro.veiculo if registro }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="motorista_id" class="form-label">Motorista *</label>
+                    <select class="form-select" id="motorista_id" name="motorista_id" required>
+                        <option value="">Selecione...</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}" {% if registro and registro.motorista_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="hora_saida" class="form-label">Hora Saída</label>
+                    <input type="time" class="form-control" id="hora_saida" name="hora_saida" value="{{ registro.hora_saida.strftime('%H:%M') if registro and registro.hora_saida else '' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="hora_retorno" class="form-label">Hora Retorno</label>
+                    <input type="time" class="form-control" id="hora_retorno" name="hora_retorno" value="{{ registro.hora_retorno.strftime('%H:%M') if registro and registro.hora_retorno else '' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="km_inicial" class="form-label">KM Inicial</label>
+                    <input type="number" step="0.1" class="form-control" id="km_inicial" name="km_inicial" value="{{ registro.km_inicial if registro }}">
+                </div>
+                 <div class="col-md-3 mb-3">
+                    <label for="km_final" class="form-label">KM Final</label>
+                    <input type="number" step="0.1" class="form-control" id="km_final" name="km_final" value="{{ registro.km_final if registro }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="observacao" class="form-label">Observação</label>
+                <textarea class="form-control" id="observacao" name="observacao" rows="3">{{ registro.observacao if registro }}</textarea>
+            </div>
+            
+            <a href="{{ url_for('frota') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Frota{% endblock %}
+
+{% block content %}
+<h1 class="mt-4">Dashboard</h1>
+<p>Visão geral do sistema.</p>
+
+<!-- Cards de Estatísticas -->
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-users"></i> Colaboradores Ativos</h5>
+                <p class="card-text fs-2">{{ total_colaboradores }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-clock"></i> Pontos Registrados Hoje</h5>
+                <p class="card-text fs-2">{{ total_pontos_hoje }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-file-invoice-dollar"></i> Descontos Pendentes</h5>
+                <p class="card-text fs-2">{{ total_descontos_pendentes }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-car"></i> Veículos em Rota Hoje</h5>
+                <p class="card-text fs-2">{{ total_frota_hoje }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Últimos Registros -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Últimos Pontos Registrados</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for ponto in ultimos_pontos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-user"></i> {{ ponto.colaborador.nome }} -
+                                <span class="badge bg-{{ 'success' if ponto.tipo == 'entrada' else 'danger' }}">{{ ponto.tipo|capitalize }}</span>
+                            </span>
+                            <small>{{ ponto.data_hora.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </li>
+                    {% else %}
+                        <li class="list-group-item">Nenhum ponto registrado recentemente.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Descontos Pendentes</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for desconto in ultimos_descontos %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ desconto.colaborador.nome }} - R$ {{ "%.2f"|format(desconto.valor) }}</h6>
+                                <small>{{ desconto.data.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <p class="mb-1">{{ desconto.motivo }}</p>
+                        </li>
+                    {% else %}
+                         <li class="list-group-item">Nenhum desconto pendente.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
