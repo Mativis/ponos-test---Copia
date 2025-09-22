@@ -3,7 +3,7 @@
 {% block title %}{% if colaborador %}Editar Colaborador{% else %}Novo Colaborador{% endif %}{% endblock %}
 
 {% block content %}
-<h1>{% if colaborador %}Editar Colaborador{% else %}Novo Colaborador{% endif %}</h1>
+<h1 class="mb-4">{% if colaborador %}Editar Colaborador{% else %}Novo Colaborador{% endif %}</h1>
 
 <div class="card">
     <div class="card-body">
@@ -47,8 +47,10 @@
             </div>
             {% endif %}
 
-            <a href="{{ url_for('colaboradores') }}" class="btn btn-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary">Salvar</button>
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('colaboradores') }}" class="btn btn-secondary me-2">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
         </form>
     </div>
 </div>

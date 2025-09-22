@@ -4,16 +4,18 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Controle de Ponto</h1>
-    <a href="{{ url_for('exportar', tipo='pontos') }}" class="btn btn-success"><i class="fas fa-file-excel"></i> Exportar</a>
+    <h1 class="fw-light">Controle de Ponto</h1>
+    <div>
+        <button onclick="window.print()" class="btn btn-info"><i class="fas fa-print me-2"></i>Imprimir</button>
+        <a href="{{ url_for('exportar', tipo='pontos') }}" class="btn btn-success"><i class="fas fa-file-excel me-2"></i>Exportar</a>
+    </div>
 </div>
 
-<!-- Formulário de Novo Ponto -->
 <div class="card mb-4">
     <div class="card-header">Registrar Novo Ponto</div>
     <div class="card-body">
         <form action="{{ url_for('novo_ponto') }}" method="POST">
-            <div class="row align-items-end">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label for="colaborador_id" class="form-label">Colaborador</label>
                     <select class="form-select" id="colaborador_id" name="colaborador_id" required>
@@ -45,7 +47,7 @@
                     </div>
                 </div>
                  <div class="col-md-1">
-                    <button type="submit" class="btn btn-primary">Registrar</button>
+                    <button type="submit" class="btn btn-primary w-100">Add</button>
                 </div>
             </div>
              <div class="row mt-3">
@@ -58,51 +60,53 @@
     </div>
 </div>
 
-<!-- Tabela de Pontos -->
 <div class="card">
-    <div class="card-body">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Colaborador</th>
-                    <th>Data e Hora</th>
-                    <th>Tipo</th>
-                    <th>Extraordinário</th>
-                    <th>Observação</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ponto in pontos %}
-                <tr>
-                    <td>{{ ponto.colaborador.nome }}</td>
-                    <td>{{ ponto.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>
-                        {% if ponto.tipo == 'entrada' %}
-                            <span class="badge bg-success">Entrada</span>
-                        {% else %}
-                            <span class="badge bg-danger">Saída</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ponto.extraordinario %}
-                            <span class="badge bg-warning">Sim</span>
-                        {% else %}
-                            <span>Não</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ ponto.observacao }}</td>
-                    <td>
-                         <a href="{{ url_for('excluir_ponto', id=ponto.id) }}" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro?')"><i class="fas fa-trash"></i></a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center">Nenhum ponto registrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th scope="col">Colaborador</th>
+                        <th scope="col">Data e Hora</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Extraordinário</th>
+                        <th scope="col">Observação</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ponto in pontos %}
+                    <tr>
+                        <td>{{ ponto.colaborador.nome }}</td>
+                        <td>{{ ponto.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if ponto.tipo == 'entrada' %}
+                                <span class="badge bg-success">Entrada</span>
+                            {% else %}
+                                <span class="badge bg-danger">Saída</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ponto.extraordinario %}
+                                <span class="badge bg-warning">Sim</span>
+                            {% else %}
+                                <span>Não</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ponto.observacao }}</td>
+                        <td>
+                            <a href="{{ url_for('editar_ponto', id=ponto.id) }}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{{ url_for('excluir_ponto', id=ponto.id) }}" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro?')"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Nenhum ponto registrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

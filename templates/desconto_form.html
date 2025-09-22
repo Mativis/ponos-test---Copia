@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{% if desconto %}Editar Desconto{% else %}Novo Desconto Manual{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">{% if desconto %}Editar Desconto{% else %}Novo Desconto Manual{% endif %}</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="colaborador_id" class="form-label">Colaborador *</label>
+                    <select class="form-select" id="colaborador_id" name="colaborador_id" required>
+                        <option value="">Selecione...</option>
+                        {% for c in colaboradores %}
+                        <option value="{{ c.id }}" {% if desconto and desconto.colaborador_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="data" class="form-label">Data *</label>
+                    <input type="date" class="form-control" id="data" name="data" value="{{ desconto.data.strftime('%Y-%m-%d') if desconto else '' }}" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="valor" class="form-label">Valor (R$) *</label>
+                    <input type="number" step="0.01" class="form-control" id="valor" name="valor" value="{{ "%.2f"|format(desconto.valor) if desconto }}" required>
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="status" class="form-label">Status *</label>
+                    <select class="form-select" id="status" name="status" required>
+                        <option value="pendente" {% if desconto and desconto.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="aprovado" {% if desconto and desconto.status == 'aprovado' %}selected{% endif %}>Aprovado</option>
+                        <option value="cancelado" {% if desconto and desconto.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="motivo" class="form-label">Motivo *</label>
+                <textarea class="form-control" id="motivo" name="motivo" rows="3" required>{{ desconto.motivo if desconto }}</textarea>
+            </div>
+            
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('descontos') }}" class="btn btn-secondary me-2">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

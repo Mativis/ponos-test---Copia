@@ -4,62 +4,65 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Controle de Frota</h1>
+    <h1 class="fw-light">Controle de Frota</h1>
     <div>
-        <a href="{{ url_for('exportar', tipo='frota') }}" class="btn btn-success"><i class="fas fa-file-excel"></i> Exportar</a>
-        <a href="{{ url_for('novo_frota') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Registro</a>
+        <button onclick="window.print()" class="btn btn-info"><i class="fas fa-print me-2"></i>Imprimir</button>
+        <a href="{{ url_for('exportar', tipo='frota') }}" class="btn btn-success"><i class="fas fa-file-excel me-2"></i>Exportar</a>
+        <a href="{{ url_for('novo_frota') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Novo Registro</a>
     </div>
 </div>
 
 <div class="card">
-    <div class="card-body">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Veículo</th>
-                    <th>Motorista</th>
-                    <th>Saída</th>
-                    <th>Retorno</th>
-                    <th>KM Rodado</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for registro in registros %}
-                <tr>
-                    <td>{{ registro.data.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ registro.veiculo }}</td>
-                    <td>{{ registro.motorista_obj.nome }}</td>
-                    <td>{{ registro.hora_saida.strftime('%H:%M') if registro.hora_saida else '-' }}</td>
-                    <td>{{ registro.hora_retorno.strftime('%H:%M') if registro.hora_retorno else '-' }}</td>
-                    <td>
-                        {% if registro.km_final and registro.km_inicial %}
-                            {{ "%.1f"|format(registro.km_final - registro.km_inicial) }} km
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if registro.status == 'conforme' %}
-                            <span class="badge bg-success">Conforme</span>
-                        {% else %}
-                            <span class="badge bg-danger">Extraordinária</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('editar_frota', id=registro.id) }}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
-                        <a href="{{ url_for('excluir_frota', id=registro.id) }}" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro?')"><i class="fas fa-trash"></i></a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="8" class="text-center">Nenhum registro de frota encontrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th scope="col">Data</th>
+                        <th scope="col">Veículo</th>
+                        <th scope="col">Motorista</th>
+                        <th scope="col">Saída</th>
+                        <th scope="col">Retorno</th>
+                        <th scope="col">KM Rodado</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.data.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ registro.veiculo }}</td>
+                        <td>{{ registro.motorista_obj.nome }}</td>
+                        <td>{{ registro.hora_saida.strftime('%H:%M') if registro.hora_saida else '-' }}</td>
+                        <td>{{ registro.hora_retorno.strftime('%H:%M') if registro.hora_retorno else '-' }}</td>
+                        <td>
+                            {% if registro.km_final and registro.km_inicial %}
+                                {{ "%.1f"|format(registro.km_final - registro.km_inicial) }} km
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if registro.status == 'conforme' %}
+                                <span class="badge bg-success">Conforme</span>
+                            {% else %}
+                                <span class="badge bg-danger">Extraordinária</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('editar_frota', id=registro.id) }}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{{ url_for('excluir_frota', id=registro.id) }}" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro?')"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">Nenhum registro de frota encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

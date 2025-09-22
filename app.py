@@ -289,6 +289,32 @@ def novo_ponto():
     
     return redirect(url_for('pontos'))
 
+@app.route('/ponto/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_ponto(id):
+    ponto = Ponto.query.get_or_404(id)
+    colaboradores = Colaborador.query.filter_by(ativo=True).all()
+    
+    if request.method == 'POST':
+        try:
+            data = request.form['data']
+            hora = request.form['hora']
+            ponto.colaborador_id = request.form['colaborador_id']
+            ponto.data_hora = datetime.strptime(f"{data} {hora}", "%Y-%m-%d %H:%M")
+            ponto.tipo = request.form['tipo']
+            ponto.observacao = request.form.get('observacao', '')
+            ponto.extraordinario = 'extraordinario' in request.form
+            
+            db.session.commit()
+            flash('Ponto atualizado com sucesso!', 'success')
+            return redirect(url_for('pontos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar ponto: {str(e)}', 'error')
+            
+    return render_template('ponto_form.html', ponto=ponto, colaboradores=colaboradores)
+
+
 @app.route('/ponto/excluir/<int:id>')
 @login_required
 def excluir_ponto(id):
@@ -405,12 +431,100 @@ def excluir_frota(id):
     return redirect(url_for('frota'))
 
 # Rotas de Descontos
-@app.route('/descontos')
+@app.route('/descontos', methods=['GET'])
 @login_required
 def descontos():
-    descontos = Desconto.query.order_by(Desconto.data.desc()).all()
-    return render_template('descontos.html', descontos=descontos)
+    query = Desconto.query.order_by(Desconto.data.desc())
+    colaboradores = Colaborador.query.all()
+    
+    # Filtros
+    colaborador_id = request.args.get('colaborador_id')
+    status = request.args.get('status')
+    data_inicio = request.args.get('data_inicio')
+    data_fim = request.args.get('data_fim')
 
+    if colaborador_id and colaborador_id != 'all':
+        query = query.filter_by(colaborador_id=int(colaborador_id))
+    
+    if status and status != 'all':
+        query = query.filter_by(status=status)
+
+    if data_inicio:
+        query = query.filter(Desconto.data >= datetime.strptime(data_inicio, '%Y-%m-%d').date())
+
+    if data_fim:
+        query = query.filter(Desconto.data <= datetime.strptime(data_fim, '%Y-%m-%d').date())
+    
+    descontos = query.all()
+    
+    return render_template('descontos.html', descontos=descontos, colaboradores=colaboradores,
+                           selected_colaborador_id=colaborador_id, selected_status=status,
+                           selected_data_inicio=data_inicio, selected_data_fim=data_fim)
+
+@app.route('/desconto/novo', methods=['GET', 'POST'])
+@login_required
+def novo_desconto():
+    colaboradores = Colaborador.query.filter_by(ativo=True).all()
+    
+    if request.method == 'POST':
+        try:
+            desconto = Desconto(
+                colaborador_id=request.form['colaborador_id'],
+                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+                motivo=request.form['motivo'],
+                valor=float(request.form['valor']),
+                status=request.form['status'],
+                automatico=False
+            )
+            
+            db.session.add(desconto)
+            db.session.commit()
+            flash('Desconto criado com sucesso!', 'success')
+            return redirect(url_for('descontos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar desconto: {str(e)}', 'error')
+
+    return render_template('desconto_form.html', desconto=None, colaboradores=colaboradores)
+
+@app.route('/desconto/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_desconto(id):
+    desconto = Desconto.query.get_or_404(id)
+    colaboradores = Colaborador.query.filter_by(ativo=True).all()
+    
+    if request.method == 'POST':
+        try:
+            desconto.colaborador_id = request.form['colaborador_id']
+            desconto.data = datetime.strptime(request.form['data'], '%Y-%m-%d').date()
+            desconto.motivo = request.form['motivo']
+            desconto.valor = float(request.form['valor'])
+            desconto.status = request.form['status']
+            
+            db.session.commit()
+            flash('Desconto atualizado com sucesso!', 'success')
+            return redirect(url_for('descontos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar desconto: {str(e)}', 'error')
+            
+    return render_template('desconto_form.html', desconto=desconto, colaboradores=colaboradores)
+
+@app.route('/desconto/excluir/<int:id>')
+@login_required
+def excluir_desconto(id):
+    desconto = Desconto.query.get_or_404(id)
+    
+    try:
+        db.session.delete(desconto)
+        db.session.commit()
+        flash('Desconto excluído com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir desconto: {str(e)}', 'error')
+    
+    return redirect(url_for('descontos'))
+    
 @app.route('/desconto/aprovar/<int:id>')
 @login_required
 def aprovar_desconto(id):
