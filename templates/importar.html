@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Dados{% endblock %}
+
+{% block content %}
+<h1 class="fw-light mb-4">Importar Dados via Excel</h1>
+
+<div class="card mb-4">
+    <div class="card-header">Modelos de Planilha</div>
+    <div class="card-body">
+        <p class="card-text">Faça o download dos modelos para garantir que a sua planilha esteja no formato correto para importação.</p>
+        <div class="d-grid gap-2 d-md-block">
+            <a href="{{ url_for('download_template', tipo='pontos') }}" class="btn btn-secondary me-2"><i class="fas fa-download me-2"></i>Modelo Pontos</a>
+            <a href="{{ url_for('download_template', tipo='frota') }}" class="btn btn-secondary"><i class="fas fa-download me-2"></i>Modelo Frota</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Upload de Arquivo</div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('importar') }}" enctype="multipart/form-data">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label for="tipo" class="form-label">Tipo de Dados</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="pontos">Controle de Ponto</option>
+                        <option value="frota">Controle de Frota</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="file" class="form-label">Arquivo Excel (.xlsx)</label>
+                    <input class="form-control" type="file" id="file" name="file" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-upload me-2"></i>Importar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

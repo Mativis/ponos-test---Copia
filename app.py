@@ -655,6 +655,125 @@ def excluir_usuario(id):
     
     return redirect(url_for('usuarios'))
 
+# Rotas de Importação
+@app.route('/importar', methods=['GET', 'POST'])
+@login_required
+def importar():
+    if not is_admin():
+        flash('Acesso negado. ' 'Entre em contato com seu administrador, apenas administradores podem importar dados.', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('Nenhum arquivo enviado.', 'error')
+            return redirect(request.url)
+
+        file = request.files['file']
+        tipo = request.form['tipo']
+
+        if file.filename == '':
+            flash('Nenhum arquivo selecionado.', 'error')
+            return redirect(request.url)
+
+        if file and file.filename.endswith('.xlsx'):
+            try:
+                df = pd.read_excel(file)
+                df = df.fillna('')
+                if tipo == 'pontos':
+                    pontos_adicionados = 0
+                    for index, row in df.iterrows():
+                        colaborador = Colaborador.query.filter_by(matricula=str(row['MATRÍCULA DO COLABORADOR'])).first()
+                        if colaborador:
+                            try:
+                                data_hora = datetime.strptime(str(row['DATA E HORA']), '%Y-%m-%d %H:%M:%S')
+                                ponto = Ponto(
+                                    colaborador_id=colaborador.id,
+                                    data_hora=data_hora,
+                                    tipo=row['TIPO (entrada ou saida)'],
+                                    observacao=row['OBSERVACAO'],
+                                    extraordinario=bool(row['EXTRAORDINÁRIO'])
+                                )
+                                db.session.add(ponto)
+                                pontos_adicionados += 1
+                            except Exception as e:
+                                flash(f"Erro na linha {index + 2}: {e}", 'error')
+                        else:
+                            flash(f"Erro na linha {index + 2}: Colaborador com matrícula {row['MATRÍCULA DO COLABORADOR']} não encontrado.", 'error')
+                    db.session.commit()
+                    flash(f"Importação de pontos concluída. {pontos_adicionados} registros adicionados.", 'success')
+
+                elif tipo == 'frota':
+                    frotas_adicionadas = 0
+                    for index, row in df.iterrows():
+                        motorista = Colaborador.query.filter_by(matricula=str(row['MATRÍCULA DO MOTORISTA'])).first()
+                        if motorista:
+                            try:
+                                frota_data = datetime.strptime(str(row['DATA']), '%Y-%m-%d %H:%M:%S').date()
+                                frota_registro = Frota(
+                                    data=frota_data,
+                                    veiculo=row['VEÍCULO'],
+                                    motorista_id=motorista.id,
+                                    hora_saida=datetime.strptime(str(row['HORA SAÍDA']), '%H:%M:%S').time() if row['HORA SAÍDA'] else None,
+                                    hora_retorno=datetime.strptime(str(row['HORA RETORNO']), '%H:%M:%S').time() if row['HORA RETORNO'] else None,
+                                    km_inicial=float(row['KM INICIAL']) if row['KM INICIAL'] else None,
+                                    km_final=float(row['KM FINAL']) if row['KM FINAL'] else None,
+                                    observacao=row['OBSERVACAO']
+                                )
+                                if not verificar_ponto_motorista(motorista.id, frota_data):
+                                    frota_registro.status = 'extraordinaria'
+                                
+                                db.session.add(frota_registro)
+                                frotas_adicionadas += 1
+                                # Gera desconto automático se necessário
+                                if frota_registro.status == 'extraordinaria':
+                                    gerar_desconto_automatico(frota_registro)
+                            except Exception as e:
+                                flash(f"Erro na linha {index + 2}: {e}", 'error')
+                        else:
+                            flash(f"Erro na linha {index + 2}: Motorista com matrícula {row['MATRÍCULA DO MOTORISTA']} não encontrado.", 'error')
+                    db.session.commit()
+                    flash(f"Importação de frota concluída. {frotas_adicionadas} registros adicionados.", 'success')
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao processar o arquivo: {str(e)}', 'error')
+
+    return render_template('importar.html')
+
+
+@app.route('/download/template/<tipo>')
+@login_required
+def download_template(tipo):
+    if not is_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+
+    output = io.BytesIO()
+
+    if tipo == 'pontos':
+        template_columns = ['MATRÍCULA DO COLABORADOR', 'DATA E HORA', 'TIPO (entrada ou saida)', 'OBSERVACAO', 'EXTRAORDINÁRIO']
+        df = pd.DataFrame(columns=template_columns)
+        filename = 'template_pontos.xlsx'
+    elif tipo == 'frota':
+        template_columns = ['DATA', 'VEÍCULO', 'MATRÍCULA DO MOTORISTA', 'HORA SAÍDA', 'HORA RETORNO', 'KM INICIAL', 'KM FINAL', 'OBSERVACAO']
+        df = pd.DataFrame(columns=template_columns)
+        filename = 'template_frota.xlsx'
+    else:
+        flash('Tipo de template inválido!', 'error')
+        return redirect(url_for('importar'))
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Modelo', index=False)
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 # Exportar dados
 @app.route('/exportar/<tipo>')
 @login_required
@@ -722,7 +841,7 @@ def exportar(tipo):
         
         # Criar arquivo Excel em memória
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        with pd.ExcelWriter(output, engine='openyxl') as writer:
             df.to_excel(writer, sheet_name='Dados', index=False)
         output.seek(0)
         
