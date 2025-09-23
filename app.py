@@ -841,7 +841,7 @@ def exportar(tipo):
         
         # Criar arquivo Excel em memória
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openyxl') as writer:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Dados', index=False)
         output.seek(0)
         
