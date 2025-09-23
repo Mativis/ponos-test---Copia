@@ -868,7 +868,7 @@ def create_tables():
             password_hash=generate_password_hash('admin123'),
             nome='Administrador',
             email='admin@sistema.com',
-            ativo=True
+            ativo=True,
         )
         db.session.add(admin)
         db.session.commit()
