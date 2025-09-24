@@ -88,41 +88,56 @@ def is_admin():
     return current_user.is_authenticated and current_user.username == 'admin'
 
 # Funções auxiliares
-def verificar_ponto_motorista(motorista_id, data):
-    """Verifica se o motorista tem ponto registrado na data"""
+def obter_ponto_saida(motorista_id, data):
+    """Obtém o ponto de saída do motorista na data específica."""
     inicio = datetime.combine(data, datetime.min.time())
     fim = datetime.combine(data, datetime.max.time())
     
-    ponto = Ponto.query.filter(
+    ponto_saida = Ponto.query.filter(
         Ponto.colaborador_id == motorista_id,
         Ponto.data_hora >= inicio,
-        Ponto.data_hora <= fim
-    ).first()
+        Ponto.data_hora <= fim,
+        Ponto.tipo == 'saida'
+    ).order_by(Ponto.data_hora.desc()).first()
     
-    return ponto is not None
+    return ponto_saida
 
 def gerar_desconto_automatico(frota_registro):
-    """Gera desconto automático para motorista sem ponto"""
-    # Verifica se já existe desconto para este registro
+    """Gera desconto automático com base em regras de negócio."""
     desconto_existente = Desconto.query.filter_by(
         frota_id=frota_registro.id,
         automatico=True
     ).first()
     
-    if not desconto_existente and not verificar_ponto_motorista(frota_registro.motorista_id, frota_registro.data):
-        # Calcula o valor do desconto (exemplo: R$ 50,00 por falta de registro)
+    if desconto_existente:
+        return None
+    
+    ponto_saida = obter_ponto_saida(frota_registro.motorista_id, frota_registro.data)
+    
+    motivo = None
+    
+    # Regra 1: Vinculação de uso de veículo sem marcação de ponto de saída
+    if not ponto_saida:
+        motivo = f'Ausência de registro de ponto de saída - Veículo {frota_registro.veiculo}'
+    
+    # Regra 2: Utilização excedente a mais de 10 minutos
+    elif frota_registro.hora_retorno and ponto_saida.data_hora:
+        ponto_retorno_datetime = datetime.combine(frota_registro.data, frota_registro.hora_retorno)
+        diferenca_tempo = ponto_retorno_datetime - ponto_saida.data_hora
+        if diferenca_tempo > timedelta(minutes=10):
+            motivo = f'Uso excedente de veículo - Veículo {frota_registro.veiculo} excedeu 10min'
+
+    if motivo:
         valor_desconto = 50.00
-        
-        # Se há quilometragem registrada, adiciona valor por km
         if frota_registro.km_inicial and frota_registro.km_final:
             km_rodado = frota_registro.km_final - frota_registro.km_inicial
             if km_rodado > 0:
-                valor_desconto += km_rodado * 0.50  # R$ 0,50 por km
+                valor_desconto += km_rodado * 0.50
         
         desconto = Desconto(
             colaborador_id=frota_registro.motorista_id,
             data=frota_registro.data,
-            motivo=f'Ausência de registro de ponto - Veículo {frota_registro.veiculo}',
+            motivo=motivo,
             valor=valor_desconto,
             status='pendente',
             frota_id=frota_registro.id,
@@ -131,7 +146,6 @@ def gerar_desconto_automatico(frota_registro):
         
         db.session.add(desconto)
         db.session.commit()
-        
         return desconto
     
     return None
@@ -358,18 +372,16 @@ def novo_frota():
                 observacao=request.form.get('observacao', '')
             )
             
-            # Verifica ponto e define status
-            if not verificar_ponto_motorista(frota_registro.motorista_id, frota_registro.data):
+            # Reavalia status e gera desconto se necessário
+            desconto = gerar_desconto_automatico(frota_registro)
+            if desconto:
                 frota_registro.status = 'extraordinaria'
+                flash('Desconto automático gerado por ausência de ponto ou uso excedente!', 'warning')
+            else:
+                frota_registro.status = 'conforme'
             
             db.session.add(frota_registro)
             db.session.commit()
-            
-            # Gera desconto automático se necessário
-            if frota_registro.status == 'extraordinaria':
-                desconto = gerar_desconto_automatico(frota_registro)
-                if desconto:
-                    flash('Desconto automático gerado por ausência de ponto!', 'warning')
             
             flash('Registro de frota criado com sucesso!', 'success')
             return redirect(url_for('frota'))
@@ -398,10 +410,9 @@ def editar_frota(id):
             registro.observacao = request.form.get('observacao', '')
             
             # Reavalia status
-            if not verificar_ponto_motorista(registro.motorista_id, registro.data):
+            desconto = gerar_desconto_automatico(registro)
+            if desconto:
                 registro.status = 'extraordinaria'
-                # Gera desconto se ainda não existe
-                gerar_desconto_automatico(registro)
             else:
                 registro.status = 'conforme'
             
@@ -660,7 +671,7 @@ def excluir_usuario(id):
 @login_required
 def importar():
     if not is_admin():
-        flash('Acesso negado. ' 'Entre em contato com seu administrador, apenas administradores podem importar dados.', 'error')
+        flash('Acesso negado. Apenas administradores podem importar dados.', 'error')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
@@ -719,14 +730,15 @@ def importar():
                                     km_final=float(row['KM FINAL']) if row['KM FINAL'] else None,
                                     observacao=row['OBSERVACAO']
                                 )
-                                if not verificar_ponto_motorista(motorista.id, frota_data):
+                                # Reavalia status e gera desconto se necessário
+                                desconto = gerar_desconto_automatico(frota_registro)
+                                if desconto:
                                     frota_registro.status = 'extraordinaria'
+                                else:
+                                    frota_registro.status = 'conforme'
                                 
                                 db.session.add(frota_registro)
                                 frotas_adicionadas += 1
-                                # Gera desconto automático se necessário
-                                if frota_registro.status == 'extraordinaria':
-                                    gerar_desconto_automatico(frota_registro)
                             except Exception as e:
                                 flash(f"Erro na linha {index + 2}: {e}", 'error')
                         else:
@@ -868,7 +880,7 @@ def create_tables():
             password_hash=generate_password_hash('admin123'),
             nome='Administrador',
             email='admin@sistema.com',
-            ativo=True,
+            ativo=True
         )
         db.session.add(admin)
         db.session.commit()
