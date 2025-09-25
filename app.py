@@ -356,6 +356,36 @@ def frota():
     colaboradores = Colaborador.query.filter_by(ativo=True).all()
     return render_template('frota.html', registros=registros, colaboradores=colaboradores)
 
+@app.route('/frota/verificar-desconto/<int:id>')
+@login_required
+def verificar_desconto_frota(id):
+    registro = Frota.query.get_or_404(id)
+    desconto = gerar_desconto_automatico(registro)
+    
+    if desconto:
+        registro.status = 'extraordinaria'
+        db.session.commit()
+        flash('Desconto automático gerado para o registro!', 'warning')
+    else:
+        flash('Nenhum desconto automático necessário para este registro.', 'success')
+    
+    return redirect(url_for('frota'))
+
+@app.route('/frota/reprocessar-descontos')
+@login_required
+def reprocessar_descontos_frota():
+    registros = Frota.query.all()
+    descontos_gerados = 0
+    for registro in registros:
+        desconto = gerar_desconto_automatico(registro)
+        if desconto:
+            descontos_gerados += 1
+            registro.status = 'extraordinaria'
+    db.session.commit()
+    flash(f'Reprocessamento concluído. {descontos_gerados} descontos automáticos gerados.', 'success')
+    return redirect(url_for('frota'))
+
+
 @app.route('/frota/novo', methods=['GET', 'POST'])
 @login_required
 def novo_frota():
