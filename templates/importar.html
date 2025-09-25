@@ -10,6 +10,7 @@
     <div class="card-body">
         <p class="card-text">Faça o download dos modelos para garantir que a sua planilha esteja no formato correto para importação.</p>
         <div class="d-grid gap-2 d-md-block">
+            <a href="{{ url_for('download_template', tipo='colaboradores') }}" class="btn btn-secondary me-2"><i class="fas fa-download me-2"></i>Modelo Colaboradores</a>
             <a href="{{ url_for('download_template', tipo='pontos') }}" class="btn btn-secondary me-2"><i class="fas fa-download me-2"></i>Modelo Pontos</a>
             <a href="{{ url_for('download_template', tipo='frota') }}" class="btn btn-secondary"><i class="fas fa-download me-2"></i>Modelo Frota</a>
         </div>
@@ -25,6 +26,7 @@
                     <label for="tipo" class="form-label">Tipo de Dados</label>
                     <select class="form-select" id="tipo" name="tipo" required>
                         <option value="">Selecione...</option>
+                        <option value="colaboradores">Colaboradores</option>
                         <option value="pontos">Controle de Ponto</option>
                         <option value="frota">Controle de Frota</option>
                     </select>

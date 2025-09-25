@@ -8,24 +8,45 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-            --background-color: #e9ecef;
+            /* Light mode variables */
+            --primary-color: #4a69bd;
+            --secondary-color: #8b9dc3;
+            --success-color: #6c5ce7;
+            --danger-color: #e84393;
+            --warning-color: #fdcb6e;
+            --info-color: #00cec9;
+            --light-color: #f1f2f6;
+            --dark-color: #2f3640;
+            --background-color: #f4f7f9;
             --card-background: #ffffff;
-            --sidebar-background: #212529;
-            --sidebar-text: #ffffff;
+            --sidebar-background: #ffffff;
+            --sidebar-text: #2f3640;
             --header-background: #ffffff;
+        }
+
+        /* Dark mode variables */
+        body.dark-mode {
+            --primary-color: #6a89cc;
+            --secondary-color: #a4b0be;
+            --success-color: #9c88ff;
+            --danger-color: #ff7675;
+            --warning-color: #feca57;
+            --info-color: #1dd1a1;
+            --light-color: #485460;
+            --dark-color: #f1f2f6;
+            --background-color: #2f3640;
+            --card-background: #3c424d;
+            --sidebar-background: #2f3640;
+            --sidebar-text: #f1f2f6;
+            --header-background: #3c424d;
+            color: var(--dark-color);
         }
 
         body {
             background-color: var(--background-color);
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--dark-color);
+            transition: background-color 0.3s, color 0.3s;
         }
         
         #wrapper {
@@ -36,8 +57,8 @@
             min-height: 100vh;
             width: 250px;
             background-color: var(--sidebar-background);
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            transition: margin .25s ease-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
         }
 
         #wrapper.toggled #sidebar-wrapper {
@@ -48,38 +69,54 @@
             padding: 1.5rem 1rem;
             font-size: 1.2rem;
             font-weight: bold;
-            color: var(--sidebar-text);
+            color: var(--primary-color);
             text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        body.dark-mode .sidebar-heading {
+            border-bottom-color: #555;
         }
 
         .list-group-item {
             background-color: var(--sidebar-background) !important;
-            color: rgba(255, 255, 255, 0.7) !important;
+            color: var(--sidebar-text) !important;
             border: none;
             padding: 1rem 1.5rem;
             transition: background-color 0.3s, color 0.3s;
+            border-radius: 0;
         }
         
         .list-group-item.active,
         .list-group-item:hover {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            color: var(--sidebar-text) !important;
-            border-left: 3px solid var(--primary-color);
+            background-color: var(--light-color) !important;
+            color: var(--primary-color) !important;
+            border-left: 4px solid var(--primary-color);
+            transform: translateX(5px);
         }
 
         .list-group-item i {
             width: 20px;
+            margin-right: 1rem;
+        }
+        .list-group-item.active i, .list-group-item:hover i {
+            color: var(--primary-color);
         }
 
         #page-content-wrapper {
             flex-grow: 1;
             width: 100%;
+            transition: all 0.3s ease;
         }
 
         .navbar {
             background-color: var(--header-background) !important;
             border-bottom: 1px solid #e0e0e0;
             padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .navbar {
+            border-bottom-color: #555;
         }
         
         main.container-fluid {
@@ -89,7 +126,16 @@
         .card {
             border: none;
             border-radius: 0.75rem;
+            background-color: var(--card-background);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, background-color 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        body.dark-mode .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         .card-header {
@@ -97,28 +143,113 @@
             border-bottom: 1px solid #e0e0e0;
             font-weight: bold;
             padding: 1rem 1.5rem;
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+            transition: background-color 0.3s, border-bottom 0.3s;
+        }
+        body.dark-mode .card-header {
+            background-color: #485460;
+            border-bottom-color: #555;
+            color: var(--dark-color);
+        }
+        
+        .table {
+            color: var(--dark-color);
+        }
+        body.dark-mode .table {
+            color: var(--dark-color);
+        }
+        
+        .table thead th {
+            background-color: var(--light-color);
+            color: var(--sidebar-text);
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .table thead th {
+            background-color: var(--light-color);
+            color: var(--sidebar-text);
+        }
+        
+        .form-control, .form-select, .form-control:focus, .form-select:focus {
+            background-color: var(--card-background);
+            color: var(--sidebar-text);
+            border-color: #ced4da;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        body.dark-mode .form-control, body.dark-mode .form-select {
+            background-color: #555;
+            color: var(--dark-color);
+            border-color: #666;
+        }
+        body.dark-mode .form-control::placeholder {
+            color: #ccc;
         }
 
-        .btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info {
+        .btn {
             border-radius: 0.5rem;
+            font-weight: 500;
+            padding: 0.6rem 1.2rem;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        
+        .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-primary:hover { background-color: #3b5998; border-color: #3b5998; }
+        .btn-success { background-color: var(--success-color); border-color: var(--success-color); }
+        .btn-success:hover { background-color: #5d45e0; border-color: #5d45e0; }
+        .btn-warning { background-color: var(--warning-color); border-color: var(--warning-color); color: var(--dark-color); }
+        .btn-warning:hover { background-color: #f7b731; border-color: #f7b731; }
+        .btn-danger { background-color: var(--danger-color); border-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #d63031; border-color: #d63031; }
+        .btn-info { background-color: var(--info-color); border-color: var(--info-color); }
+        .btn-info:hover { background-color: #00b894; border-color: #00b894; }
+
+        .btn-outline-warning, .btn-outline-danger, .btn-outline-info {
+            border-width: 2px;
         }
         
         .badge {
             border-radius: 0.5rem;
             padding: 0.5em 0.8em;
-            font-weight: normal;
+            font-weight: 600;
+        }
+
+        .mode-toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 1rem;
+            color: var(--sidebar-text);
+        }
+        body.dark-mode .mode-toggle {
+            color: var(--dark-color);
+        }
+
+        @media (max-width: 768px) {
+            #sidebar-wrapper {
+                margin-left: -250px;
+                position: fixed;
+                z-index: 1000;
+            }
+            #wrapper.toggled #sidebar-wrapper {
+                margin-left: 0;
+            }
+            #page-content-wrapper {
+                margin-left: 0;
+            }
         }
 
         @media print {
             body {
                 background-color: #fff;
+                color: #000;
             }
-            #sidebar-wrapper, .navbar, .btn, .d-flex.justify-content-between.align-items-center.mb-4 a.btn, .card-header, .alert, .form-control {
+            #sidebar-wrapper, .navbar, .btn, .d-flex.justify-content-between.align-items-center.mb-4 a.btn, .card-header, .alert, .form-control, .mode-toggle {
                 display: none;
             }
             .d-flex.justify-content-between.align-items-center.mb-4 h1 {
                 display: block;
                 text-align: center;
+                margin-bottom: 2rem !important;
+                font-size: 2rem;
             }
             .card-body {
                 padding: 0 !important;
@@ -132,6 +263,11 @@
             .table {
                 width: 100%;
                 margin: 0;
+                color: #000;
+            }
+            .table thead th {
+                background-color: #e9ecef !important;
+                color: #000 !important;
             }
         }
     </style>
@@ -141,14 +277,15 @@
         <div id="sidebar-wrapper">
             <div class="sidebar-heading">Sistema Frota</div>
             <div class="list-group list-group-flush">
-                <a href="{{ url_for('index') }}" class="list-group-item"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
-                <a href="{{ url_for('colaboradores') }}" class="list-group-item"><i class="fas fa-users me-2"></i>Colaboradores</a>
-                <a href="{{ url_for('pontos') }}" class="list-group-item"><i class="fas fa-clock me-2"></i>Controle de Ponto</a>
-                <a href="{{ url_for('frota') }}" class="list-group-item"><i class="fas fa-car me-2"></i>Controle de Frota</a>
-                <a href="{{ url_for('descontos') }}" class="list-group-item"><i class="fas fa-file-invoice-dollar me-2"></i>Descontos</a>
-                <a href="{{ url_for('importar') }}" class="list-group-item"><i class="fas fa-file-import me-2"></i>Importar Dados</a>
+                <a href="{{ url_for('index') }}" class="list-group-item"><i class="fas fa-tachometer-alt"></i>Dashboard</a>
+                <a href="{{ url_for('colaboradores') }}" class="list-group-item"><i class="fas fa-users"></i>Colaboradores</a>
+                <a href="{{ url_for('pontos') }}" class="list-group-item"><i class="fas fa-clock"></i>Controle de Ponto</a>
+                <a href="{{ url_for('frota') }}" class="list-group-item"><i class="fas fa-car"></i>Controle de Frota</a>
+                <a href="{{ url_for('descontos') }}" class="list-group-item"><i class="fas fa-file-invoice-dollar"></i>Descontos</a>
+                <a href="{{ url_for('habilitados') }}" class="list-group-item"><i class="fas fa-id-card-alt"></i>Habilitados</a>
                 {% if current_user.username == 'admin' %}
-                <a href="{{ url_for('usuarios') }}" class="list-group-item"><i class="fas fa-user-shield me-2"></i>Gerenciar Usuários</a>
+                <a href="{{ url_for('usuarios') }}" class="list-group-item"><i class="fas fa-user-shield"></i>Gerenciar Usuários</a>
+                <a href="{{ url_for('importar') }}" class="list-group-item"><i class="fas fa-file-import"></i>Importar Dados</a>
                 {% endif %}
             </div>
         </div>
@@ -159,6 +296,11 @@
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                             <li class="nav-item d-flex align-items-center">
+                                <span class="mode-toggle" id="mode-toggle">
+                                    <i class="fas fa-moon"></i>
+                                </span>
+                             </li>
                              {% if current_user.is_authenticated %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -196,6 +338,43 @@
             e.preventDefault();
             document.getElementById("wrapper").classList.toggle("toggled");
         });
+        
+        const modeToggle = document.getElementById('mode-toggle');
+        const body = document.body;
+        const icon = modeToggle.querySelector('i');
+
+        function setMode(mode) {
+            if (mode === 'dark') {
+                body.classList.add('dark-mode');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                body.classList.remove('dark-mode');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+
+        modeToggle.addEventListener('click', () => {
+            if (body.classList.contains('dark-mode')) {
+                setMode('light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                setMode('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // Check for saved theme preference on page load
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setMode(savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // Check for OS dark mode preference
+            setMode('dark');
+        } else {
+            setMode('light');
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>
