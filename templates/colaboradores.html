@@ -21,7 +21,8 @@
                         <th scope="col">Matrícula</th>
                         <th scope="col">Telefone</th>
                         <th scope="col">Email</th>
-                        <th scope="col">Veículo Vinculado</th>
+                        <th scope="col">Vencimento CNH</th>
+                        <th scope="col">Última Consulta</th>
                         <th scope="col">Status</th>
                         <th scope="col">Ações</th>
                     </tr>
@@ -33,7 +34,8 @@
                         <td>{{ colaborador.matricula }}</td>
                         <td>{{ colaborador.telefone }}</td>
                         <td>{{ colaborador.email }}</td>
-                        <td>{{ colaborador.veiculo_vinculado or 'N/A' }}</td>
+                        <td>{{ colaborador.vencimento_cnh.strftime('%d/%m/%Y') if colaborador.vencimento_cnh else 'N/A' }}</td>
+                        <td>{{ colaborador.ultima_consulta.strftime('%d/%m/%Y') if colaborador.ultima_consulta else 'N/A' }}</td>
                         <td>
                             {% if colaborador.ativo %}
                                 <span class="badge bg-success">Ativo</span>
@@ -48,7 +50,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Nenhum colaborador cadastrado.</td>
+                        <td colspan="8" class="text-center text-muted py-4">Nenhum colaborador cadastrado.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

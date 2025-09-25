@@ -37,6 +37,8 @@ class Colaborador(db.Model):
     email = db.Column(db.String(120))
     veiculo_vinculado = db.Column(db.String(20))
     ativo = db.Column(db.Boolean, default=True)
+    vencimento_cnh = db.Column(db.Date)
+    ultima_consulta = db.Column(db.Date)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relacionamentos
@@ -190,6 +192,13 @@ def index():
     total_descontos_pendentes = Desconto.query.filter_by(status='pendente').count()
     total_frota_hoje = Frota.query.filter_by(data=date.today()).count()
     
+    # CNH em atenção
+    data_limite_consulta = date.today() - timedelta(days=180)
+    total_cnh_atencao = Colaborador.query.filter(
+        (Colaborador.vencimento_cnh <= date.today()) | 
+        (Colaborador.ultima_consulta <= data_limite_consulta)
+    ).count()
+
     # Últimos registros
     ultimos_pontos = Ponto.query.order_by(Ponto.data_hora.desc()).limit(5).all()
     ultimos_descontos = Desconto.query.filter_by(status='pendente').order_by(Desconto.criado_em.desc()).limit(5).all()
@@ -199,6 +208,7 @@ def index():
                          total_pontos_hoje=total_pontos_hoje,
                          total_descontos_pendentes=total_descontos_pendentes,
                          total_frota_hoje=total_frota_hoje,
+                         total_cnh_atencao=total_cnh_atencao,
                          ultimos_pontos=ultimos_pontos,
                          ultimos_descontos=ultimos_descontos)
 
@@ -213,17 +223,22 @@ def colaboradores():
 @login_required
 def novo_colaborador():
     if request.method == 'POST':
-        colaborador = Colaborador(
-            nome=request.form['nome'],
-            matricula=request.form['matricula'],
-            cpf=request.form.get('cpf'),
-            telefone=request.form.get('telefone'),
-            email=request.form.get('email'),
-            veiculo_vinculado=request.form.get('veiculo_vinculado'),
-            ativo=True
-        )
-        
         try:
+            vencimento_cnh = datetime.strptime(request.form['vencimento_cnh'], '%Y-%m-%d').date() if request.form['vencimento_cnh'] else None
+            ultima_consulta = datetime.strptime(request.form['ultima_consulta'], '%Y-%m-%d').date() if request.form['ultima_consulta'] else None
+            
+            colaborador = Colaborador(
+                nome=request.form['nome'],
+                matricula=request.form['matricula'],
+                cpf=request.form.get('cpf'),
+                telefone=request.form.get('telefone'),
+                email=request.form.get('email'),
+                veiculo_vinculado=request.form.get('veiculo_vinculado'),
+                ativo=True,
+                vencimento_cnh=vencimento_cnh,
+                ultima_consulta=ultima_consulta
+            )
+            
             db.session.add(colaborador)
             db.session.commit()
             flash('Colaborador cadastrado com sucesso!', 'success')
@@ -240,15 +255,18 @@ def editar_colaborador(id):
     colaborador = Colaborador.query.get_or_404(id)
     
     if request.method == 'POST':
-        colaborador.nome = request.form['nome']
-        colaborador.matricula = request.form['matricula']
-        colaborador.cpf = request.form.get('cpf')
-        colaborador.telefone = request.form.get('telefone')
-        colaborador.email = request.form.get('email')
-        colaborador.veiculo_vinculado = request.form.get('veiculo_vinculado')
-        colaborador.ativo = 'ativo' in request.form
-        
         try:
+            colaborador.nome = request.form['nome']
+            colaborador.matricula = request.form['matricula']
+            colaborador.cpf = request.form.get('cpf')
+            colaborador.telefone = request.form.get('telefone')
+            colaborador.email = request.form.get('email')
+            colaborador.veiculo_vinculado = request.form.get('veiculo_vinculado')
+            colaborador.ativo = 'ativo' in request.form
+            
+            colaborador.vencimento_cnh = datetime.strptime(request.form['vencimento_cnh'], '%Y-%m-%d').date() if request.form['vencimento_cnh'] else None
+            colaborador.ultima_consulta = datetime.strptime(request.form['ultima_consulta'], '%Y-%m-%d').date() if request.form['ultima_consulta'] else None
+            
             db.session.commit()
             flash('Colaborador atualizado com sucesso!', 'success')
             return redirect(url_for('colaboradores'))
@@ -816,6 +834,53 @@ def download_template(tipo):
     )
 
 
+# Rotas para Habilitados
+@app.route('/habilitados', methods=['GET'])
+@login_required
+def habilitados():
+    query = Colaborador.query.filter_by(ativo=True).order_by(Colaborador.nome.asc())
+    
+    # Filtros
+    nome = request.args.get('nome')
+    matricula = request.args.get('matricula')
+    
+    if nome:
+        query = query.filter(Colaborador.nome.ilike(f'%{nome}%'))
+    
+    if matricula:
+        query = query.filter(Colaborador.matricula.ilike(f'%{matricula}%'))
+    
+    colaboradores = query.all()
+    
+    # Apenas colaboradores com CNH válida e consulta recente
+    data_limite_consulta = date.today() - timedelta(days=180)
+    habilitados_em_dia = [c for c in colaboradores if c.vencimento_cnh and c.vencimento_cnh > date.today() and c.ultima_consulta and c.ultima_consulta >= data_limite_consulta]
+    
+    cnh_atencao = [c for c in colaboradores if c not in habilitados_em_dia]
+    
+    return render_template('habilitados.html', habilitados_em_dia=habilitados_em_dia, cnh_atencao=cnh_atencao,
+                           selected_nome=nome, selected_matricula=matricula)
+
+@app.route('/habilitado/confirmar-consulta/<int:id>')
+@login_required
+def confirmar_consulta_cnh(id):
+    if not is_admin():
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('index'))
+    
+    colaborador = Colaborador.query.get_or_404(id)
+    
+    try:
+        colaborador.ultima_consulta = date.today()
+        db.session.commit()
+        flash(f'Última consulta de CNH de {colaborador.nome} atualizada com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar a última consulta de CNH: {str(e)}', 'error')
+        
+    return redirect(url_for('habilitados'))
+
+
 # Exportar dados
 @app.route('/exportar/<tipo>')
 @login_required
@@ -831,7 +896,9 @@ def exportar(tipo):
                 'Telefone': c.telefone,
                 'Email': c.email,
                 'Veículo': c.veiculo_vinculado,
-                'Ativo': 'Sim' if c.ativo else 'Não'
+                'Ativo': 'Sim' if c.ativo else 'Não',
+                'Vencimento CNH': c.vencimento_cnh,
+                'Última Consulta CNH': c.ultima_consulta
             } for c in data])
             filename = 'colaboradores.xlsx'
             

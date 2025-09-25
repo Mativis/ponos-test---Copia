@@ -38,6 +38,16 @@
                     <input type="text" class="form-control" id="veiculo_vinculado" name="veiculo_vinculado" value="{{ colaborador.veiculo_vinculado if colaborador }}">
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="vencimento_cnh" class="form-label">Vencimento CNH</label>
+                    <input type="date" class="form-control" id="vencimento_cnh" name="vencimento_cnh" value="{{ colaborador.vencimento_cnh.strftime('%Y-%m-%d') if colaborador and colaborador.vencimento_cnh else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ultima_consulta" class="form-label">Última Consulta</label>
+                    <input type="date" class="form-control" id="ultima_consulta" name="ultima_consulta" value="{{ colaborador.ultima_consulta.strftime('%Y-%m-%d') if colaborador and colaborador.ultima_consulta else '' }}">
+                </div>
+            </div>
              {% if colaborador %}
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="ativo" name="ativo" {% if colaborador.ativo %}checked{% endif %}>
