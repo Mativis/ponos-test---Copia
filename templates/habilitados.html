@@ -3,8 +3,9 @@
 {% block title %}Habilitados{% endblock %}
 
 {% block content %}
+<h1 class="fw-light mb-4">Relatório de Habilitação</h1>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="fw-light">Relatório de Habilitação</h1>
     <a href="#" class="btn btn-info" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir Relatório</a>
 </div>
 
@@ -92,9 +93,9 @@
                         <td>{{ colaborador.vencimento_cnh.strftime('%d/%m/%Y') if colaborador.vencimento_cnh else 'N/A' }}</td>
                         <td>{{ colaborador.ultima_consulta.strftime('%d/%m/%Y') if colaborador.ultima_consulta else 'N/A' }}</td>
                         <td>
-                            {% if not colaborador.vencimento_cnh or colaborador.vencimento_cnh <= now() %}
+                            {% if not colaborador.vencimento_cnh or colaborador.vencimento_cnh <= now %}
                                 <span class="badge bg-danger">CNH Vencida</span>
-                            {% elif not colaborador.ultima_consulta or (now() - colaborador.ultima_consulta).days > 180 %}
+                            {% elif not colaborador.ultima_consulta or (now - colaborador.ultima_consulta).days > 180 %}
                                 <span class="badge bg-warning">Consulta Antiga</span>
                             {% else %}
                                 <span class="badge bg-secondary">Outro Motivo</span>
@@ -113,9 +114,4 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    function now() {
-        return new Date();
-    }
-</script>
 {% endblock %}

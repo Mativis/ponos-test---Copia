@@ -738,7 +738,44 @@ def importar():
             try:
                 df = pd.read_excel(file)
                 df = df.fillna('')
-                if tipo == 'pontos':
+                if tipo == 'colaboradores':
+                    colaboradores_adicionados = 0
+                    for index, row in df.iterrows():
+                        try:
+                            # Converte '1' para True e '0' para False
+                            ativo = str(row.get('ATIVO', '')).strip() == '1'
+                            
+                            # Tenta converter as datas, tratando células vazias
+                            vencimento_cnh_str = str(row.get('VENCIMENTO CNH', '')).strip()
+                            vencimento_cnh = pd.to_datetime(vencimento_cnh_str).date() if vencimento_cnh_str else None
+                            
+                            ultima_consulta_str = str(row.get('ULTIMA CONSULTA', '')).strip()
+                            ultima_consulta = pd.to_datetime(ultima_consulta_str).date() if ultima_consulta_str else None
+
+                            colaborador_existente = Colaborador.query.filter_by(matricula=str(row['MATRÍCULA'])).first()
+                            if colaborador_existente:
+                                flash(f"Erro na linha {index + 2}: Colaborador com matrícula {row['MATRÍCULA']} já existe. Registro ignorado.", 'error')
+                                continue
+                            
+                            colaborador = Colaborador(
+                                nome=row['NOME COMPLETO'],
+                                matricula=row['MATRÍCULA'],
+                                cpf=row['CPF'],
+                                telefone=row['TELEFONE'],
+                                email=row['EMAIL'],
+                                veiculo_vinculado=row['VEÍCULO VINCULADO'],
+                                ativo=ativo,
+                                vencimento_cnh=vencimento_cnh,
+                                ultima_consulta=ultima_consulta
+                            )
+                            db.session.add(colaborador)
+                            colaboradores_adicionados += 1
+                        except Exception as e:
+                            flash(f"Erro na linha {index + 2}: {e}. Registro ignorado.", 'error')
+                    db.session.commit()
+                    flash(f"Importação de colaboradores concluída. {colaboradores_adicionados} registros adicionados.", 'success')
+
+                elif tipo == 'pontos':
                     pontos_adicionados = 0
                     for index, row in df.iterrows():
                         colaborador = Colaborador.query.filter_by(matricula=str(row['MATRÍCULA DO COLABORADOR'])).first()
@@ -810,7 +847,11 @@ def download_template(tipo):
 
     output = io.BytesIO()
 
-    if tipo == 'pontos':
+    if tipo == 'colaboradores':
+        template_columns = ['NOME COMPLETO', 'MATRÍCULA', 'CPF', 'TELEFONE', 'EMAIL', 'VEÍCULO VINCULADO', 'ATIVO', 'VENCIMENTO CNH', 'ULTIMA CONSULTA']
+        df = pd.DataFrame(columns=template_columns)
+        filename = 'template_colaboradores.xlsx'
+    elif tipo == 'pontos':
         template_columns = ['MATRÍCULA DO COLABORADOR', 'DATA E HORA', 'TIPO (entrada ou saida)', 'OBSERVACAO', 'EXTRAORDINÁRIO']
         df = pd.DataFrame(columns=template_columns)
         filename = 'template_pontos.xlsx'
@@ -859,7 +900,7 @@ def habilitados():
     cnh_atencao = [c for c in colaboradores if c not in habilitados_em_dia]
     
     return render_template('habilitados.html', habilitados_em_dia=habilitados_em_dia, cnh_atencao=cnh_atencao,
-                           selected_nome=nome, selected_matricula=matricula)
+                           selected_nome=nome, selected_matricula=matricula, now=date.today())
 
 @app.route('/habilitado/confirmar-consulta/<int:id>')
 @login_required
