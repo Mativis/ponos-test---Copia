@@ -3,13 +3,12 @@
 {% block title %}Descontos{% endblock %}
 
 {% block content %}
+<h1 class="fw-light mb-4">Gestão de Descontos</h1>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="fw-light">Gestão de Descontos</h1>
-    <div>
-        <button onclick="window.print()" class="btn btn-info"><i class="fas fa-print me-2"></i>Imprimir</button>
-        <a href="{{ url_for('exportar', tipo='descontos') }}" class="btn btn-success"><i class="fas fa-file-excel me-2"></i>Exportar</a>
-        <a href="{{ url_for('novo_desconto') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Novo Desconto Manual</a>
-    </div>
+    <a href="#" class="btn btn-info me-2" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir Relatório</a>
+    <a href="{{ url_for('exportar', tipo='descontos') }}" class="btn btn-success me-2"><i class="fas fa-file-excel me-2"></i>Exportar</a>
+    <a href="{{ url_for('novo_desconto') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Novo Desconto Manual</a>
 </div>
 
 <div class="card mb-4">
@@ -44,7 +43,7 @@
                     <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim or '' }}">
                 </div>
                 <div class="col-md-1">
-                    <button type="submit" class="btn btn-info w-100"><i class="fas fa-filter"></i></button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter"></i></button>
                 </div>
             </div>
             <div class="row mt-2">
@@ -66,8 +65,11 @@
                         <th scope="col">Data</th>
                         <th scope="col">Valor</th>
                         <th scope="col">Motivo</th>
-                        <th scope="col">Tipo</th>
+                        <th scope="col">Data de Criação</th>
                         <th scope="col">Status</th>
+                        <th scope="col">Data da Ação</th>
+                        <th scope="col">Motivo da Ação</th>
+                        <th scope="col">Tipo</th>
                         <th scope="col">Ações</th>
                     </tr>
                 </thead>
@@ -78,13 +80,7 @@
                         <td>{{ desconto.data.strftime('%d/%m/%Y') }}</td>
                         <td>R$ {{ "%.2f"|format(desconto.valor) }}</td>
                         <td>{{ desconto.motivo }}</td>
-                        <td>
-                            {% if desconto.automatico %}
-                                <span class="badge bg-info">Automático</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Manual</span>
-                            {% endif %}
-                        </td>
+                        <td>{{ desconto.criado_em.strftime('%d/%m/%Y %H:%M') if desconto.criado_em else '-' }}</td>
                         <td>
                             {% if desconto.status == 'pendente' %}
                                 <span class="badge bg-warning">Pendente</span>
@@ -94,10 +90,19 @@
                                 <span class="badge bg-danger">Cancelado</span>
                             {% endif %}
                         </td>
+                         <td>{{ desconto.data_alteracao_status.strftime('%d/%m/%Y %H:%M') if desconto.data_alteracao_status else '-' }}</td>
+                        <td>{{ desconto.motivo_alteracao_status if desconto.motivo_alteracao_status else '-' }}</td>
+                        <td>
+                            {% if desconto.automatico %}
+                                <span class="badge bg-info">Automático</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Manual</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if desconto.status == 'pendente' %}
                             <a href="{{ url_for('aprovar_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-success" title="Aprovar"><i class="fas fa-check"></i></a>
-                            <a href="{{ url_for('cancelar_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-danger" title="Cancelar"><i class="fas fa-times"></i></a>
+                            <button class="btn btn-sm btn-outline-danger" title="Cancelar" onclick="cancelarDesconto({{ desconto.id }})"><i class="fas fa-times"></i></button>
                             {% endif %}
                             {% if desconto.status != 'aprovado' and desconto.status != 'cancelado' %}
                             <a href="{{ url_for('editar_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
@@ -109,7 +114,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Nenhum desconto registrado.</td>
+                        <td colspan="10" class="text-center text-muted py-4">Nenhum desconto registrado.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -117,4 +122,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    function cancelarDesconto(id) {
+        const motivo = prompt("Por favor, insira o motivo do cancelamento:");
+        if (motivo !== null && motivo.trim() !== "") {
+            fetch("{{ url_for('cancelar_desconto', id=1) }}".replace('1', id), {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'motivo_cancelamento': motivo
+                }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    response.json().then(data => {
+                        alert(data.message);
+                    });
+                }
+            });
+        }
+    }
+</script>
 {% endblock %}

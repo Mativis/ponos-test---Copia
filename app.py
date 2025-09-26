@@ -78,6 +78,8 @@ class Desconto(db.Model):
     frota_id = db.Column(db.Integer, db.ForeignKey('frota.id'))
     automatico = db.Column(db.Boolean, default=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    data_alteracao_status = db.Column(db.DateTime)
+    motivo_alteracao_status = db.Column(db.Text)
     
     frota = db.relationship('Frota', backref='descontos')
 
@@ -593,6 +595,8 @@ def excluir_desconto(id):
 def aprovar_desconto(id):
     desconto = Desconto.query.get_or_404(id)
     desconto.status = 'aprovado'
+    desconto.data_alteracao_status = datetime.utcnow()
+    desconto.motivo_alteracao_status = "Aprovado manualmente."
     
     try:
         db.session.commit()
@@ -603,19 +607,24 @@ def aprovar_desconto(id):
     
     return redirect(url_for('descontos'))
 
-@app.route('/desconto/cancelar/<int:id>')
+@app.route('/desconto/cancelar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def cancelar_desconto(id):
     desconto = Desconto.query.get_or_404(id)
-    desconto.status = 'cancelado'
     
-    try:
-        db.session.commit()
-        flash('Desconto cancelado!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao cancelar desconto: {str(e)}', 'error')
-    
+    if request.method == 'POST':
+        desconto.status = 'cancelado'
+        desconto.data_alteracao_status = datetime.utcnow()
+        motivo = request.form.get('motivo_cancelamento')
+        desconto.motivo_alteracao_status = motivo if motivo else "Cancelado manualmente."
+        
+        try:
+            db.session.commit()
+            flash('Desconto cancelado!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cancelar desconto: {str(e)}', 'error')
+        
     return redirect(url_for('descontos'))
 
 # Rotas de Gerenciamento de Usuários (Apenas para Admin)
