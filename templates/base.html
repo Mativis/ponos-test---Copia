@@ -286,6 +286,7 @@
                 {% if current_user.username == 'admin' %}
                 <a href="{{ url_for('usuarios') }}" class="list-group-item"><i class="fas fa-user-shield"></i>Gerenciar Usuários</a>
                 <a href="{{ url_for('importar') }}" class="list-group-item"><i class="fas fa-file-import"></i>Importar Dados</a>
+                <a href="{{ url_for('auditoria') }}" class="list-group-item"><i class="fas fa-history"></i>Log de Auditoria</a>
                 {% endif %}
             </div>
         </div>

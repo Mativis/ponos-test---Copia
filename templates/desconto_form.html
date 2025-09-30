@@ -33,6 +33,7 @@
                     <select class="form-select" id="status" name="status" required>
                         <option value="pendente" {% if desconto and desconto.status == 'pendente' %}selected{% endif %}>Pendente</option>
                         <option value="aprovado" {% if desconto and desconto.status == 'aprovado' %}selected{% endif %}>Aprovado</option>
+                        <option value="descontado" {% if desconto and desconto.status == 'descontado' %}selected{% endif %}>Descontado</option>
                         <option value="cancelado" {% if desconto and desconto.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>

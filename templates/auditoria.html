@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Log de Auditoria{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-light">Log de Auditoria</h1>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th scope="col">Data e Hora</th>
+                        <th scope="col">Usuário</th>
+                        <th scope="col">Ação</th>
+                        <th scope="col">Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.data_hora.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>{{ log.usuario_nome }}</td>
+                        <td>{{ log.acao }}</td>
+                        <td>{{ log.detalhes }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Nenhum log de auditoria encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

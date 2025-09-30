@@ -95,6 +95,8 @@
                         <td>
                             {% if not colaborador.vencimento_cnh or colaborador.vencimento_cnh <= now %}
                                 <span class="badge bg-danger">CNH Vencida</span>
+                            {% elif colaborador.vencimento_cnh <= data_vencimento_proximo %}
+                                <span class="badge bg-warning">Vencimento Próximo</span>
                             {% elif not colaborador.ultima_consulta or (now - colaborador.ultima_consulta).days > 180 %}
                                 <span class="badge bg-warning">Consulta Antiga</span>
                             {% else %}

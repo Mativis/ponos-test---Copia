@@ -74,7 +74,7 @@ class Desconto(db.Model):
     data = db.Column(db.Date, nullable=False)
     motivo = db.Column(db.Text, nullable=False)
     valor = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pendente')  # pendente, aprovado, cancelado
+    status = db.Column(db.String(20), default='pendente')  # pendente, aprovado, descontado, cancelado
     frota_id = db.Column(db.Integer, db.ForeignKey('frota.id'))
     automatico = db.Column(db.Boolean, default=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
@@ -82,6 +82,27 @@ class Desconto(db.Model):
     motivo_alteracao_status = db.Column(db.Text)
     
     frota = db.relationship('Frota', backref='descontos')
+
+class LogAuditoria(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))
+    usuario_nome = db.Column(db.String(100))
+    acao = db.Column(db.String(255), nullable=False)
+    detalhes = db.Column(db.Text)
+    data_hora = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship('Usuario', backref='logs_auditoria')
+
+def registrar_log(acao, detalhes=''):
+    """Registra uma ação no log de auditoria."""
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_nome=current_user.nome,
+        acao=acao,
+        detalhes=detalhes
+    )
+    db.session.add(log)
+    db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -150,6 +171,7 @@ def gerar_desconto_automatico(frota_registro):
         
         db.session.add(desconto)
         db.session.commit()
+        registrar_log(f"Gerou desconto automático para a frota ID {frota_registro.id}", f"Motivo: {motivo}")
         return desconto
     
     return None
@@ -167,6 +189,7 @@ def login():
             if user.ativo:
                 login_user(user)
                 flash('Login realizado com sucesso!', 'success')
+                registrar_log("Login realizado")
                 return redirect(url_for('index'))
             else:
                 flash('Usuário inativo. Contate o administrador.', 'error')
@@ -178,6 +201,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    registrar_log("Logout realizado")
     logout_user()
     flash('Logout realizado com sucesso.', 'success')
     return redirect(url_for('login'))
@@ -196,9 +220,11 @@ def index():
     
     # CNH em atenção
     data_limite_consulta = date.today() - timedelta(days=180)
+    data_vencimento_proximo = date.today() + timedelta(days=30)
     total_cnh_atencao = Colaborador.query.filter(
         (Colaborador.vencimento_cnh <= date.today()) | 
-        (Colaborador.ultima_consulta <= data_limite_consulta)
+        (Colaborador.ultima_consulta <= data_limite_consulta) |
+        (Colaborador.vencimento_cnh <= data_vencimento_proximo)
     ).count()
 
     # Últimos registros
@@ -243,6 +269,7 @@ def novo_colaborador():
             
             db.session.add(colaborador)
             db.session.commit()
+            registrar_log(f"Cadastrou novo colaborador: {colaborador.nome}")
             flash('Colaborador cadastrado com sucesso!', 'success')
             return redirect(url_for('colaboradores'))
         except Exception as e:
@@ -270,6 +297,7 @@ def editar_colaborador(id):
             colaborador.ultima_consulta = datetime.strptime(request.form['ultima_consulta'], '%Y-%m-%d').date() if request.form['ultima_consulta'] else None
             
             db.session.commit()
+            registrar_log(f"Editou o colaborador: {colaborador.nome}")
             flash('Colaborador atualizado com sucesso!', 'success')
             return redirect(url_for('colaboradores'))
         except Exception as e:
@@ -284,8 +312,10 @@ def excluir_colaborador(id):
     colaborador = Colaborador.query.get_or_404(id)
     
     try:
+        nome_colaborador = colaborador.nome
         db.session.delete(colaborador)
         db.session.commit()
+        registrar_log(f"Excluiu o colaborador: {nome_colaborador}")
         flash('Colaborador excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -319,6 +349,7 @@ def novo_ponto():
         
         db.session.add(ponto)
         db.session.commit()
+        registrar_log(f"Registrou novo ponto para o colaborador ID {ponto.colaborador_id}")
         
         flash('Ponto registrado com sucesso!', 'success')
     except Exception as e:
@@ -344,6 +375,7 @@ def editar_ponto(id):
             ponto.extraordinario = 'extraordinario' in request.form
             
             db.session.commit()
+            registrar_log(f"Editou o ponto ID {id}")
             flash('Ponto atualizado com sucesso!', 'success')
             return redirect(url_for('pontos'))
         except Exception as e:
@@ -361,6 +393,7 @@ def excluir_ponto(id):
     try:
         db.session.delete(ponto)
         db.session.commit()
+        registrar_log(f"Excluiu o ponto ID {id}")
         flash('Ponto excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -402,6 +435,7 @@ def reprocessar_descontos_frota():
             descontos_gerados += 1
             registro.status = 'extraordinaria'
     db.session.commit()
+    registrar_log(f"Reprocessou descontos de frota, gerando {descontos_gerados} novos descontos")
     flash(f'Reprocessamento concluído. {descontos_gerados} descontos automáticos gerados.', 'success')
     return redirect(url_for('frota'))
 
@@ -432,6 +466,7 @@ def novo_frota():
             
             db.session.add(frota_registro)
             db.session.commit()
+            registrar_log(f"Criou novo registro de frota para o veículo {frota_registro.veiculo}")
             
             flash('Registro de frota criado com sucesso!', 'success')
             return redirect(url_for('frota'))
@@ -467,6 +502,7 @@ def editar_frota(id):
                 registro.status = 'conforme'
             
             db.session.commit()
+            registrar_log(f"Editou o registro de frota ID {id}")
             flash('Registro atualizado com sucesso!', 'success')
             return redirect(url_for('frota'))
             
@@ -488,6 +524,7 @@ def excluir_frota(id):
         
         db.session.delete(registro)
         db.session.commit()
+        registrar_log(f"Excluiu o registro de frota ID {id}")
         flash('Registro excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -544,6 +581,7 @@ def novo_desconto():
             
             db.session.add(desconto)
             db.session.commit()
+            registrar_log(f"Criou novo desconto para o colaborador ID {desconto.colaborador_id}")
             flash('Desconto criado com sucesso!', 'success')
             return redirect(url_for('descontos'))
         except Exception as e:
@@ -567,6 +605,7 @@ def editar_desconto(id):
             desconto.status = request.form['status']
             
             db.session.commit()
+            registrar_log(f"Editou o desconto ID {id}")
             flash('Desconto atualizado com sucesso!', 'success')
             return redirect(url_for('descontos'))
         except Exception as e:
@@ -583,6 +622,7 @@ def excluir_desconto(id):
     try:
         db.session.delete(desconto)
         db.session.commit()
+        registrar_log(f"Excluiu o desconto ID {id}")
         flash('Desconto excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -600,6 +640,7 @@ def aprovar_desconto(id):
     
     try:
         db.session.commit()
+        registrar_log(f"Aprovou o desconto ID {id}")
         flash('Desconto aprovado!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -620,10 +661,33 @@ def cancelar_desconto(id):
         
         try:
             db.session.commit()
+            registrar_log(f"Cancelou o desconto ID {id}", f"Motivo: {motivo}")
             flash('Desconto cancelado!', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao cancelar desconto: {str(e)}', 'error')
+        
+    return redirect(url_for('descontos'))
+
+@app.route('/desconto/descontar/<int:id>', methods=['POST'])
+@login_required
+def descontar_desconto(id):
+    desconto = Desconto.query.get_or_404(id)
+    
+    if desconto.status == 'aprovado':
+        desconto.status = 'descontado'
+        desconto.data_alteracao_status = datetime.utcnow()
+        desconto.motivo_alteracao_status = "Marcado como descontado."
+        
+        try:
+            db.session.commit()
+            registrar_log(f"Marcou como descontado o desconto ID {id}")
+            flash('Desconto marcado como descontado!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao marcar como descontado: {str(e)}', 'error')
+    else:
+        flash('Apenas descontos aprovados podem ser marcados como descontados.', 'error')
         
     return redirect(url_for('descontos'))
 
@@ -663,6 +727,7 @@ def novo_usuario():
             )
             db.session.add(novo_usuario)
             db.session.commit()
+            registrar_log(f"Criou novo usuário: {username}")
             flash('Usuário criado com sucesso!', 'success')
             return redirect(url_for('usuarios'))
         except Exception as e:
@@ -692,6 +757,7 @@ def editar_usuario(id):
                 usuario.password_hash = generate_password_hash(nova_senha)
             
             db.session.commit()
+            registrar_log(f"Editou o usuário: {usuario.username}")
             flash('Usuário atualizado com sucesso!', 'success')
             return redirect(url_for('usuarios'))
         except Exception as e:
@@ -714,8 +780,10 @@ def excluir_usuario(id):
         return redirect(url_for('usuarios'))
     
     try:
+        username = usuario.username
         db.session.delete(usuario)
         db.session.commit()
+        registrar_log(f"Excluiu o usuário: {username}")
         flash('Usuário excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -782,6 +850,7 @@ def importar():
                         except Exception as e:
                             flash(f"Erro na linha {index + 2}: {e}. Registro ignorado.", 'error')
                     db.session.commit()
+                    registrar_log(f"Importou {colaboradores_adicionados} colaboradores via Excel")
                     flash(f"Importação de colaboradores concluída. {colaboradores_adicionados} registros adicionados.", 'success')
 
                 elif tipo == 'pontos':
@@ -805,6 +874,7 @@ def importar():
                         else:
                             flash(f"Erro na linha {index + 2}: Colaborador com matrícula {row['MATRÍCULA DO COLABORADOR']} não encontrado.", 'error')
                     db.session.commit()
+                    registrar_log(f"Importou {pontos_adicionados} pontos via Excel")
                     flash(f"Importação de pontos concluída. {pontos_adicionados} registros adicionados.", 'success')
 
                 elif tipo == 'frota':
@@ -838,6 +908,7 @@ def importar():
                         else:
                             flash(f"Erro na linha {index + 2}: Motorista com matrícula {row['MATRÍCULA DO MOTORISTA']} não encontrado.", 'error')
                     db.session.commit()
+                    registrar_log(f"Importou {frotas_adicionadas} registros de frota via Excel")
                     flash(f"Importação de frota concluída. {frotas_adicionadas} registros adicionados.", 'success')
 
             except Exception as e:
@@ -904,25 +975,24 @@ def habilitados():
     
     # Apenas colaboradores com CNH válida e consulta recente
     data_limite_consulta = date.today() - timedelta(days=180)
-    habilitados_em_dia = [c for c in colaboradores if c.vencimento_cnh and c.vencimento_cnh > date.today() and c.ultima_consulta and c.ultima_consulta >= data_limite_consulta]
+    data_vencimento_proximo = date.today() + timedelta(days=30)
+
+    habilitados_em_dia = [c for c in colaboradores if c.vencimento_cnh and c.vencimento_cnh > data_vencimento_proximo and c.ultima_consulta and c.ultima_consulta >= data_limite_consulta]
     
     cnh_atencao = [c for c in colaboradores if c not in habilitados_em_dia]
     
     return render_template('habilitados.html', habilitados_em_dia=habilitados_em_dia, cnh_atencao=cnh_atencao,
-                           selected_nome=nome, selected_matricula=matricula, now=date.today())
+                           selected_nome=nome, selected_matricula=matricula, now=date.today(), data_vencimento_proximo=data_vencimento_proximo)
 
 @app.route('/habilitado/confirmar-consulta/<int:id>')
 @login_required
 def confirmar_consulta_cnh(id):
-    if not is_admin():
-        flash('Acesso negado.', 'error')
-        return redirect(url_for('index'))
-    
     colaborador = Colaborador.query.get_or_404(id)
     
     try:
         colaborador.ultima_consulta = date.today()
         db.session.commit()
+        registrar_log(f"Confirmou a consulta da CNH de {colaborador.nome}")
         flash(f'Última consulta de CNH de {colaborador.nome} atualizada com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -1014,6 +1084,16 @@ def exportar(tipo):
     except Exception as e:
         flash(f'Erro ao exportar dados: {str(e)}', 'error')
         return redirect(url_for('index'))
+
+# Rota para Logs de Auditoria
+@app.route('/auditoria')
+@login_required
+def auditoria():
+    if not is_admin():
+        flash('Acesso negado. Apenas administradores podem ver os logs de auditoria.', 'error')
+        return redirect(url_for('index'))
+    logs = LogAuditoria.query.order_by(LogAuditoria.data_hora.desc()).all()
+    return render_template('auditoria.html', logs=logs)
 
 # Inicialização do banco de dados e criação de usuário admin
 @app.before_request

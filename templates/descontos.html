@@ -31,6 +31,7 @@
                         <option value="all">Todos</option>
                         <option value="pendente" {% if selected_status == 'pendente' %}selected{% endif %}>Pendente</option>
                         <option value="aprovado" {% if selected_status == 'aprovado' %}selected{% endif %}>Aprovado</option>
+                        <option value="descontado" {% if selected_status == 'descontado' %}selected{% endif %}>Descontado</option>
                         <option value="cancelado" {% if selected_status == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>
@@ -86,6 +87,8 @@
                                 <span class="badge bg-warning">Pendente</span>
                             {% elif desconto.status == 'aprovado' %}
                                 <span class="badge bg-success">Aprovado</span>
+                            {% elif desconto.status == 'descontado' %}
+                                <span class="badge bg-primary">Descontado</span>
                             {% else %}
                                 <span class="badge bg-danger">Cancelado</span>
                             {% endif %}
@@ -103,10 +106,12 @@
                             {% if desconto.status == 'pendente' %}
                             <a href="{{ url_for('aprovar_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-success" title="Aprovar"><i class="fas fa-check"></i></a>
                             <button class="btn btn-sm btn-outline-danger" title="Cancelar" onclick="cancelarDesconto({{ desconto.id }})"><i class="fas fa-times"></i></button>
-                            {% endif %}
-                            {% if desconto.status != 'aprovado' and desconto.status != 'cancelado' %}
                             <a href="{{ url_for('editar_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
                             <a href="{{ url_for('excluir_desconto', id=desconto.id) }}" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro?')"><i class="fas fa-trash"></i></a>
+                            {% elif desconto.status == 'aprovado' %}
+                            <form id="form-descontar-{{ desconto.id }}" action="{{ url_for('descontar_desconto', id=desconto.id) }}" method="POST" class="d-inline">
+                                <button type="button" class="btn btn-sm btn-outline-primary" title="Descontar" onclick="confirmarDesconto({{ desconto.id }})"><i class="fas fa-check-double"></i></button>
+                            </form>
                             {% else %}
                             -
                             {% endif %}
@@ -144,6 +149,12 @@
                     });
                 }
             });
+        }
+    }
+
+    function confirmarDesconto(id) {
+        if (confirm('Tem certeza que deseja marcar este desconto como "descontado"? Esta ação não pode ser revertida.')) {
+            document.getElementById('form-descontar-' + id).submit();
         }
     }
 </script>
